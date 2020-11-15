@@ -3,10 +3,6 @@
 % Zoe Haskell, at UNR in August 2015
 % --------------------------------------------
 
-% Starting Data:
-    %figure(3)
-    %clf(3)
-    %clearvars
 isplot=1;
 save=1;
 juxtapose=1;
@@ -22,7 +18,7 @@ Omega=5;
 T=tokunagap(1,2,Omega);
 %L=abs(normrnd(0,1,1,length(T)));
 L=exprnd(1,1,length(T));
-[X,V,t]=harrispathbb(T,L);
+[X,V,t]=harrispath(T,L);
 
 else
 X1 = cumsum(randi(100,1,500)-50);
@@ -75,10 +71,6 @@ if wing==1
    
    WTruth1 = zeros(1, length(Y));
    WTruth2=zeros(1,length(Orig));
-%    
-%    Wm = sum(wingmin);
-%    WNorm = wingmin./Wm;
-     %M=mean(W1);
    
            M=quantile(minsort,percentile);
         
@@ -143,7 +135,6 @@ MSE1=[];
 counter = 0;
 
 for threshold = logspace(-5,log10(.5),50)
-    % threshold =.2;
     fftgrid = 1:length(F); %frequency grid
     N=length(F); %length of series
     filter = zeros(size(fftgrid)); %zero initial values
@@ -169,10 +160,10 @@ for threshold = logspace(-5,log10(.5),50)
            histmat(counter, 1:length(Xtrim1))=Xtrim1;            
     end
     
-%     if save==1
-%             sv=length(I);
-%             saveas(figure(1), ['F_' num2str(sv) '.jpg'], 'jpg'); 
-%     end
+     if save==1
+             sv=length(I);
+             saveas(figure(1), ['F_' num2str(sv) '.jpg'], 'jpg'); 
+     end
        
     [MSE,Dev,~,WSE] = CompareError(tOrig, Y, gY, Xtrim1);
     MSE1(counter) = MSE;
@@ -186,7 +177,6 @@ Parameters1(counter) = (length(I)*3)+1;
     % Calculates the mean squared error of the FFT (Method #1)
     
 end
-%WMSE1=
 
 figure(3)
 loglog(Parameters1,MSE1,'color',[.5,0,0],'Marker','o','markersize',8,'markerfacecolor',[.5,0,0])
@@ -210,9 +200,6 @@ Dcheck = 0;
 while Dcheck == 0
     [Xt,tt,Vt,NewT1,NewT2,Lt,Dcheck] = ThreeOptionTrim(X,t,V,T1,T2,L,Delta,2);
     
-%     [Xt,tt,Vt,NewT,Lt,LL]=trimspeedtests(X,t,V,T,L,LL,0);
-    % Calculate trim using tree method
-    
     Pts = NewT1>0;
     Pts = NewT1(Pts);
 
@@ -223,35 +210,6 @@ while Dcheck == 0
 
 XLIN = fun2grid(Xt,tt,tOrig,1);
 XLIN = XLIN';
-
-%     LIN=setdiff(tOrig,tt);
-%     XLIN=Orig;
-%         for i=1:length(tOrig)
-%             if ismember(tOrig(i), LIN)==1
-%             XLIN(i)=-1;
-%             end
-%         end
-% 
-%         for i=1:length(XLIN)
-%             if XLIN(i)==-1
-%             y_1=XLIN(i-1);
-%             n=1;
-%                 while XLIN(i+n)==-1
-%                 n=n+1;
-%                 end
-%             y_2=XLIN(i+n);
-%             x_1=tOrig(i-1);
-%             x_2=tOrig(i+n);
-%             x=tOrig(i);
-%             XLIN(i)= y_1 + (y_2 - y_1)/(x_2 - x_1) * (x - x_1);
-%             end
-%         end
-% The code above linearly interpolates the trimmed line, so that 
-% we have the same length vectors to make our error comparison for Method #2.
-
-% Spl=spline(tt,Xt,tOrig);
-% MSE3(end+1)=mean((Orig-Spl).^2);
-
 
 [MSE,Dev,~,WSE] = CompareError(tOrig,Orig,tOrig,XLIN);
 
@@ -264,15 +222,12 @@ if juxtapose
      end 
 end
 
-
-
 % Calculate the error (quality of fit) between red plot and original
 
 if isplot
     figure(1)
     clf(1)
     plot(tOrig,Orig,'b',tOrig,XLIN,'g.-');
-% tOrig,Spl,'k'
     title((2*length(NewT2))+4);
      ylabel('Function Value')
      xlabel('Time')
