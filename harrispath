@@ -1,0 +1,92 @@
+function [X,V,t]=harrispath(T,L,t) 
+%---------------------------------------------------------
+%UNR: Zoe Haskell 
+% 
+%Begun Summer 2015
+%
+%Filename:
+%           harrispath.m
+%
+%Usage:
+%       X: vector of the heights of the harris path for T
+%       t: time steps for X
+%       V: tracks how T has been embedded; f uses input for edge lengths L or generates them if unspecified.
+%       Graphs a harris path from the tree and lengths given.
+%
+%Inputs:
+%       T: parent pointer vector of a tree (T(i) = parent of node i)
+%       L: vector of edge lengths (ones if unspecified)
+%       t: time steps specified (ones if unspecified) 
+%
+%Outputs:%   Outputs the Harris path X(t) corresponding to the input tree,
+% and also outputs V, which tracks how the tree was embedded.
+%
+%----------------------------------------------------------
+
+if nargin==1
+    L=ones(1,length(T));
+end
+
+% checks for correct number of arguments; 
+% If L is not entered, it sets L to a vector of ones.
+
+root=find(T==0);
+%Find the index of the root of the tree
+
+if all(T~=0), error('T is not a tree; there is no root'), end
+%Checks that T has a root, returns an error message if not
+
+if length(root)>1, error('T has multiple roots: T must be a single tree')
+end
+%error message for a vector with multiple zeros
+%--------------------------------------------------------------
+
+X=[0 L(root)];
+V=[0 root];
+    if nargin == 2
+        t=[0 L(root)];
+    end
+
+% Initializes the harrispath vectors and the node tracking vector
+
+TC=T;
+%creates a copy of T used to track which nodes have been treated
+node=root;
+
+
+while node~=0
+kids=find(TC==node);
+
+    if length(kids)~=0
+        c=randperm(length(kids));
+        node=kids(c(1));
+        V(end+1)= node;
+        X(end+1)=X(end)+L(node);
+           if length(t)< (3*length(T)) %not ideal value, working one
+              t(end+1)=t(end)+L(node);
+           end
+      
+    else
+        X(end+1)=X(end)-L(node);
+        TC(node)=0;
+        V(end+1)=T(node);
+          if length(t)< (3*length(T)) %not ideal value, working one
+             t(end+1)=t(end)+L(node);
+          end
+        node=T(node);
+    end
+end
+
+% Traces the path
+
+leaves=setdiff(1:length(T),T);
+Internal_Nodes=setdiff(1:length(T),leaves);
+    for i=Internal_Nodes
+        spots=find(V==i);
+        X(spots(1))=-1;
+        X(spots(3))=-1;
+    end
+index = find(X~=-1);
+X = X(index);
+t = t(index);
+V = V(index);
