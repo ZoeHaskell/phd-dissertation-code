@@ -1,0 +1,77 @@
+function [ T1B, T2B, Delete ] = TopoDelete( Delete,T1,T2,Parent,Sibling)
+%Takes a list of nodes that are to be deleted, and the current
+% trees, and removes them, outputs the resulting trees
+% IMPORTANT: the tree outputs won't be plottable!
+% They have not yet been renamed.
+
+T1(Sibling) = T1(Parent);
+
+if T1(Parent)==0 % avoids having two roots
+   T1(Parent) = -1;
+end
+
+index = 1:length(T1);
+T1B = T1;
+T2B = T2;       
+
+root = index(T1==0);
+root2 = index(T2==0);
+root2 = setdiff(root2,Delete);
+
+if root ~= root2
+    Delete(end +1) = root2;
+    Delete = unique(Delete);
+    root2 = root;
+        %something
+end
+
+if any(Delete==0) || any(Delete==root)
+    Delete = setdiff(Delete,0);
+keyboard
+end
+    
+    
+for Del = Delete
+    Logi1 = T1B==Del;
+    if any(Logi1)
+    CurrentKids = index(Logi1);
+    CurrentParent = T1B(Del); % this could potentially be -1 or 0
+    
+    if CurrentParent==-1 % if it is, deleting it from T1 will
+       continue          % have no effect on the parent/child links
+    end
+    
+    CatchDeleteChains = Delete==CurrentParent;
+    
+    while any(CatchDeleteChains)
+       CurrentParent = T1B(CurrentParent);
+       CatchDeleteChains = Delete==CurrentParent;
+    end
+    
+    T1B(CurrentKids) = CurrentParent;
+    end
+    
+    
+end
+
+for Del = Delete
+    Logi2 = T2==Del;
+    if any(Logi2)
+        CurrentKids = index(Logi2);
+        CurrentParent = T2(Del);
+%         if CurrentParent==0
+%             T2B(CurrentKids) = CurrentParent;
+%            continue 
+%         end
+        CatchDeleteChains = Delete==CurrentParent;
+        while any(CatchDeleteChains)
+            CurrentParent = T2(CurrentParent);
+            CatchDeleteChains = Delete==CurrentParent;
+        end
+          
+        T2B(CurrentKids) = CurrentParent;
+    end
+end  
+  
+end
+
