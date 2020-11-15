@@ -1,0 +1,196 @@
+function [T,L,IMax,IMin,Xs,Fs,Ms]=level_set_tree(f,X,plateaus = 0)
+
+% Level set tree for a real function f(X)
+% Taking plateaus into account
+% Usage
+%     [T,L,IMax,IMin,Xs,Fs,Ms]=level_set_tree(f,X,plateaus = 0)
+%
+f = double(f);
+
+if exist ('X')~=1
+    X=[1:length(f)];
+end
+
+X = double(X);
+
+% make row
+if size(f,2)==1
+    f=f';
+end
+
+%auto x axis vector
+
+N=length(X);
+I1=[1:N-2];
+I2=[2:N-1];
+I3=[3:N];
+IMax=find(f(I2)>=f(I1) & f(I2)>f(I3))+1; % maxima
+IMin=find(f(I2)<f(I1) & f(I2)<=f(I3))+1; % minima
+
+% -------------------------------------
+if plateaus == 1
+  % Find Plateau start and end points
+  epsilon = min(abs(diff(f)))*0.01;
+
+  Plateaus1 = abs(f(I1)-f(I2)) <= epsilon;
+  Plateaus2 = abs(f(I2)-f(I3)) <= epsilon;
+  Plateaus = false(1,length(f));
+  for index = 1:length(Plateaus1)
+      if Plateaus1(index) == 1 && Plateaus2(index) == 1
+%        Plateaus(index) = true;
+         Plateaus(index + 1) = true;
+%        Plateaus(index + 2) = true;
+      end
+  end
+
+EPfind = diff(Plateaus);
+EPfind = EPfind ~=0;
+index = 1:length(f)-1;
+EP = index(EPfind);
+
+EPind = 1:length(EP);
+righteven = mod(EPind,2)==0;
+oddleft = ~righteven;
+LeftPlat = EP(oddleft);
+RightPlat = EP(righteven) + 1;
+
+% Here I want to catagorize the plateaus based on the boundary
+% behavior--max, min, and monotone up/down
+  for i = 1:length(LeftPlat)
+      if LeftPlat(i) - 1 ==0
+        testleft = f(1);
+      else
+        testleft = f(LeftPlat(i)-1);
+      end
+
+      if RightPlat(i) + 1 > length(X)
+        testright = f(end);
+      else
+        testright = f(RightPlat(i)+1);
+      end
+    
+      if testleft <= f(LeftPlat(i))
+          if testright <= f(LeftPlat(i))
+%               This plateau is a maximum
+                NewNode = LeftPlat(i) + floor((RightPlat(i)-LeftPlat(i))/2);
+%               Set LP, RP to maxima, NewNode to minimum
+                IMin = [IMin NewNode];
+                f(NewNode) = f(NewNode) - epsilon;
+                IMax = [IMax LeftPlat(i) RightPlat(i)];
+                f(LeftPlat(i)) = f(LeftPlat(i)) + epsilon;
+                f(RightPlat(i)) = f(RightPlat(i)) + epsilon;
+          else
+%               This plateau is monotone up
+%                 Set LP to maximum, RP to minimum
+                IMin = [IMin RightPlat(i)];
+                f(RightPlat(i)) = f(RightPlat(i)) - epsilon;
+                IMax = [IMax LeftPlat(i)];
+                f(LeftPlat(i)) = f(LeftPlat(i)) + epsilon;
+          end
+       
+     else
+          if testright >= f(LeftPlat(i))
+%             This plateau is a minimum
+              NewNode = LeftPlat(i) + floor((RightPlat(i)-LeftPlat(i))/2);
+%             Set NewNode to maximum, LP, RP to minima
+              IMin = [IMin LeftPlat(i) RightPlat(i)];
+              f(LeftPlat(i)) = f(LeftPlat(i)) - epsilon;
+              f(RightPlat(i)) = f(RightPlat(i)) - epsilon;
+              IMax = [IMax NewNode];
+              f(NewNode) = f(NewNode) + epsilon;
+          else
+%               This plateau is monotone down
+%               Set RP to maximum, LP to minimum
+              IMin = [IMin LeftPlat(i)];
+              f(LeftPlat(i)) = f(LeftPlat(i)) - epsilon;
+              IMax = [IMax RightPlat(i)];
+              f(RightPlat(i)) = f(RightPlat(i)) + epsilon;
+          end
+      end
+    
+  end
+
+end % ends the plateau section
+
+IMin = unique(IMin);
+IMax = unique(IMax);
+
+B=[IMin IMax]; % local extrema
+
+if length(B)==1
+    % need a case here for very short series
+    MX = any(IMax);
+    other = abs(MX-1);
+    Ms = [other MX other];
+    
+    Fs = [f(1), f(B), f(end)];
+    Xs = [X(1), X(B), X(end)];
+    
+else
+
+    M=[zeros(size(IMin)) ones(size(IMax))]; % mark for min (0) or max (1)
+    [Xs,J]=sort(X(B)); % sorted times of local extrema
+    Fs=f(B(J)); % time-sorted extremal values  
+    Ms=M(J); % time-sorted extreme type (0=min, 1=max) 
+    if (length(Ms))<1
+        T = 0;
+        L = 0;
+        IMax = []; 
+        IMin = [];
+        Xs = [X(1) X(end)];
+        Fs = [f(1) f(end)];
+        Ms = [];
+        return        
+    end
+
+% truncate so that the first and the last extrema are local maxima
+%--------------------
+    if Ms(1) == 0 
+    Xs=Xs(2:end);
+    Fs=Fs(2:end);
+    Ms=Ms(2:end);
+    end
+    if Ms(end) == 0
+    Xs=Xs(1:end-1);
+    Fs=Fs(1:end-1);
+    Ms=Ms(1:end-1);
+    end
+
+end
+%--------------------
+
+Imin=find(Ms==0); % indices of local minima
+if any(diff(sort(Imin))<2)
+   Doom = any(sort(diff(Imin))<2);
+   D = Imin(Doom);
+   disp('Two adjacent nodes have been labled as minima') 
+   Imin(D)
+   Imin(D-1)
+
+end
+[Fss,I]=sort(-Fs(Imin)); % descending local minima
+Imin=Imin(I); % indices of local minima in descending order 
+
+% Somewhere in here I need to locate plateaus both left/right
+% and by height (?) to make sure they are placed correctly
+% in the tree.
+
+T=zeros(1,length(Fs)); % tree
+L=zeros(size(T)); % link lengths
+
+for k=1:length(Imin)
+    for a=Imin(k)-1
+        while T(a)~=0
+            a=T(a);
+        end
+        T(a)=Imin(k);
+        L(a)=Fs(a)-Fs(T(a));
+    end
+    for b=Imin(k)+1
+        while T (b)~=0
+            b=T(b);
+        end
+        T(b)=Imin(k);
+        L(b)=Fs(b)-Fs(T(b));
+    end
+end
