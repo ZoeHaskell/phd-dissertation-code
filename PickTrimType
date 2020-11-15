@@ -12,11 +12,6 @@ PointsToCheck = unique([iMinLeaf,iParent,AroundMinLeaf,AroundParent]);
 MiniSeriesX = Orig(PointsToCheck);
 MiniSeriesTime = tOrig(PointsToCheck);
 
-% Longer Vector for Better Error Comparison
-% NewTimeIndex = linspace(MiniSeriesTime(1),MiniSeriesTime(end));
-% OriginalX = interp1(MiniSeriesTime,MiniSeriesX,NewTimeIndex);
-
-
 % Get trimmed time series for Direct Trim
 DirectIndex = setdiff(PointsToCheck,[iMinLeaf,iParent]);
 DirectX = Orig(DirectIndex);
