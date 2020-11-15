@@ -13,7 +13,7 @@ Delta = 0.2;
 if thp
     T = tokunagap(1,2,6);
     L = exprnd(1,1,length(T));
-    [X,V,t] = harrispathbb(T,L);
+    [X,V,t] = harrispath(T,L);
  
 
 %Generate a time series of length 2^n (here n=9)
@@ -23,7 +23,6 @@ else
     t1 = 1:length(X1);
     [~,X] = Fn2Excursion(t1,X1);
 end
-
 
 
 if deviations
@@ -107,7 +106,6 @@ WC=FWT_PO(Y,1, qmf4);
 
 for sig = 1:100:2000
     threshold=sig;
-%threshold = sqrt(2*log(512*sig));
 
 %Apply hard-threshold low-pass filter
 % filter=zeros(size(WC));
@@ -125,7 +123,6 @@ WavTrim=IWT_PO(Keep,1,qmf4);
     figure(1)
     plot(t,X,'b', t, WavTrim, 'm')
     title(length(K));
-%     title(threshold);
     ylabel('Function Value')
     xlabel('Time')
     axis([0 n1 min(X) max(X)])
@@ -181,9 +178,7 @@ Delta = Delta*(max(Xlt)-min(Xlt));
 Dcheck=0;
 
 while Dcheck==0
-%    [Xt,tt,Vt,NewT1,NewT2,Lt,Dcheck] = SingleTrim(Xlt,tlt,V,T1,T2,L,Delta);
-   [Xt,tt,Vt,NewT,Lt,LL]=trimspeedtests(Xlt,tlt,V,T,L,LL,0);
-    % Calculate trim using tree method
+   [Xt,tt,Vt,NewT,Lt,LL]=ThreeOptionTrim(Xlt,tlt,V,T,L,LL,0);
 
     Parameters2(end+1)=2*length(NewT2)+4;
     % Number of parameters
@@ -192,32 +187,6 @@ while Dcheck==0
 
 XLIN = fun2grid(Xt,tt,tOrig,1);
 XLIN = XLIN';
-
-
-%     LIN=setdiff(tOrig,tt);
-%     XLIN=Orig;
-%         for i=1:length(tOrig)
-%             if ismember(tOrig(i), LIN)==1
-%             XLIN(i)=-1;
-%             end
-%         end
-% 
-%         for i=1:length(XLIN)
-%             if XLIN(i)==-1
-%             y_1=XLIN(i-1);
-%             n=1;
-%                 while XLIN(i+n)==-1
-%                 n=n+1;
-%                 end
-%             y_2=XLIN(i+n);
-%             x_1=tOrig(i-1);
-%             x_2=tOrig(i+n);
-%             x=tOrig(i);
-%             XLIN(i)= y_1 + (y_2 - y_1)/(x_2 - x_1) * (x - x_1);
-%             end
-%         end
-% The code above linearly interpolates the trimmed line, so that 
-% we have the same length vectors to make our error comparison for Method #2.
 tOrigea = tOrig(1:n1);
 Origea = Orig(1:n1);
 XLINea = XLIN(1:n1);
@@ -291,32 +260,8 @@ if juxtapose
             axis([0 n1 0 max(Orig)]);
                 if save
                 saveas(figure(1), ['Comp_' num2str(val) '.jpg'], 'jpg'); 
-                end
-            
-%                 if deviations
-%                     figure(4)
-%                     clf
-%                     D=Dev1(t,:);
-%                     D2=Dev2(idx1,:);
-%                     if isplot
-%                         plot(tOrigea,D, 'r-', tOrigea, D2, 'k-');
-%                     end
-%             
-                    
-%                     if isplot
-%                     str=sprintf('Wavelet Parameters = %d, Total Error = %d', Parameters1(t), TE1);
-%                     str2=sprintf('Trim Parameters = %d, Total Error = %d', Parameters2(idx1), TE2);
-%                     cell={str; str2};
-%                     title(cell)
-%                     xlabel('Time')
-%                     ylabel('Deviation from Data')
-%                     end
-%                     
-%                     if save
-%                         saveas(figure(4), ['Dev_' num2str(val) '.jpg'], 'jpg');
-%                     end
-%                 end
-  end
+                end                   
+         end
     
 end
   
