@@ -19,94 +19,11 @@ if ~exist('W','var')==1
     W = ones(1,length(max(length(t),length(t2))));
 end
 
-% if length(t) ~= length(X)
-%     error('Time series one has vectors of unequal length')
-% end
-% 
-% if length(t2) ~= length(X2)
-%     error('Time series two has vectors of unequal length')
-% end
-
-% if max(t) ~= max(t2)
-%   error('X(t) and X2(t2) must have the same domain')
-%   another option would be to set min(t) and max(t) to some arbitrary
-%   values, or keep the smaller series constant when there's no info?
-% end
-% 
-% if length(t) ~= length(t2)
-%     if length(t2) > length(t)
-%         a = t2; 
-%         aX = X2;
-%         b = t;
-%         bX = X;
-%     else
-%         a = t;
-%         aX = X;
-%         b = t2;
-%         bX = X2;
-%     end
-    
-%     if exist(W)
-%         if length(W) ~= length(a)
-%         error('Weight vector W must be the same length as the longest time series input')
-%         end
-%         Weighted mean squared error, if desired
-%         WE = mean(((X - X2).^2).*W);
-%     end
-% 
-%    %linearly interpolate so you can compare vectors of unequal length 
-%    LIN=setdiff(a,b);
-%    XLIN = aX;
-% %     XLIN=zeros(1,length(aX)) -1; 
-%     % XLIN(b) = bX;
-%     for i = 1:length(a)
-%         if ismember(a(i),LIN) ==1
-%             XLIN(i) = -1;
-%         end
-%     end
-%         
-%          for i=1:length(XLIN)
-%            % if XLIN(1) == -1
-%            %    while XLIN(1) ==-1
-%                   %  XLIN(1) = [];
-%                 %end
-%              %end
-%                 
-%             if XLIN(i)==-1
-%             y_1=XLIN(i-1);
-%             n=1;
-%                 while XLIN(i+n)==-1
-%                 n=n+1;
-%                 end
-%             y_2=XLIN(i+n);
-%             x_1=a(i-1);
-%             x_2=a(i+n);
-%             x=a(i);
-%             XLIN(i)= y_1 + (y_2 - y_1)/(x_2 - x_1) * (x - x_1);
-%             end
-%          end
-% end
-
-
-%Total error (sum of error at each point) Add deviations-style plot?
+% Total error (sum of error at each point) 
 NewX2 = interp1(t2,X2,t);
-Err = (X - NewX2);
+Err = (X - NewX2).*W;
 Dev = abs(Err);
 TE = sum(Dev);
+
 %Mean Squared Error
 MSE = mean((Err).^2);
-%  MSE = log10(mean(Err.^2));
-% MSE = mean(log10((Err).^2));
-%WE = Dev.*W;
-Wlog = W>0;
-if isempty(Wlog)==1
-    WSE = 0;
-else
-   Count = Err(Wlog);
-    WSE = mean(Count.^2); 
-end
-
-
-
-end
-
