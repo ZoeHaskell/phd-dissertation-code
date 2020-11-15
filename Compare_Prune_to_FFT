@@ -1,0 +1,380 @@
+% Comparison of Signal Processing Methods
+% 
+% Zoe Haskell, at UNR in August 2015
+% --------------------------------------------
+
+% Starting Data:
+    %figure(3)
+    %clf(3)
+    %clearvars
+isplot=1;
+save=1;
+juxtapose=1;
+wing=0;
+deviations=0;    
+level = 0;
+
+figure(3)
+clf(3)
+    
+if level==0    
+Omega=5;
+T=tokunagap(1,2,Omega);
+%L=abs(normrnd(0,1,1,length(T)));
+L=exprnd(1,1,length(T));
+[X,V,t]=harrispathbb(T,L);
+
+else
+X1 = cumsum(randi(100,1,500)-50);
+X1 = X1 - min(X1)+100;
+t1 = 1:length(X1);
+[t,X] = Fn2Excursion(t1,X1); 
+L=exprnd(1,1,length(T));
+    
+end
+
+Orig=X;
+tOrig=t;
+
+if deviations==1
+counter=0;
+Dev1=[];
+Dev2=[];
+TotalErrorF = [];
+TotalErrorT = [];
+end
+% ---------------------------------------------
+if wing==1
+    WSE1=[];
+    WSE2=[];
+    n=1;
+    percentile=0.99;
+end
+
+% Method #1: Fast Fourier Transform
+
+gY=linspace(min(t),max(t),2^13);
+Y=fun2grid(X,t,gY,1);
+Y=Y';
+
+if juxtapose
+histmat=zeros(length(gY), length(gY));
+histmat=histmat-1;
+end
+
+if wing==1
+    [W,wl,wr,~,~,~,ind1]=ewing(Orig);
+    wingmin = zeros(1,length(W));
+   for w = 1:length(wl)
+       wingmin(w) = min(wr(w),wl(w));
+   end
+   [minsort, ind] = sort(wingmin);
+   minsort = fliplr(minsort);
+   sortind = fliplr(ind);
+   topind = ind1(sortind);
+   
+   WTruth1 = zeros(1, length(Y));
+   WTruth2=zeros(1,length(Orig));
+%    
+%    Wm = sum(wingmin);
+%    WNorm = wingmin./Wm;
+     %M=mean(W1);
+   
+           M=quantile(minsort,percentile);
+        
+             while minsort(n)>=M
+                 n=n+1;
+             end
+        KeptW = topind(1:n);
+        WTruth2(KeptW) = 1;
+        
+leftside = zeros(1,length(KeptW));
+rightside = leftside;
+ordinates = leftside;
+counter = 1;
+
+
+    for x = KeptW
+        left = 1;
+        right = length(gY);
+        ordinate = 0;
+            while ordinate == 0
+            middle = ceil((left + right)/2);
+                if gY(middle) <= x && gY(middle+1) >= x
+                ordinate = middle;
+                elseif gY(middle) > x
+                right = middle - 1;
+                elseif gY(middle) < x
+                left = middle + 1;
+                end
+            end
+    leftside(counter) = left; %leftmost indices in gY near points of interest
+    rightside(counter) = right;
+    ordinates(counter) = ordinate; %Points of interest indices in Orig
+    counter = counter + 1;
+    end
+  
+  %      change to include an option for weighting by the wing
+%       vector directly
+WTruth1(ordinates) = 1;
+% WTruth1(leftside) = 1;
+% WTruth1(rightside) = 1;
+
+%    WTruth=WTruth.*0.5;
+%    WTruth(ind1(1:n))=1;
+%sized for FFT
+     
+end
+
+%F=fft(X);
+F=fft(Y);
+
+% figure(2)
+% clf(2);
+% loglog(t,abs(F),'b-');
+% title('Frequency Spectrum of Data')
+% ylabel('Spectral Power Density')
+% xlabel('Frequency')
+
+
+Parameters1=[];
+MSE1=[];
+% Create empty vectors to be added to
+counter = 0;
+
+for threshold = logspace(-5,log10(.5),50)
+    % threshold =.2;
+    fftgrid = 1:length(F); %frequency grid
+    N=length(F); %length of series
+    filter = zeros(size(fftgrid)); %zero initial values
+    I = find(fftgrid<N/2*threshold | fftgrid>N-N/2*threshold); %low frequencies
+    filter(I)=1; %ones at low frequencies
+
+    Ftrim=F.*filter;
+    Xtrim1=real(ifft(Ftrim));
+    % perform inverse fft on new data
+
+    
+    if isplot
+        figure(1)
+        plot(tOrig,Orig,'b',gY,Xtrim1,'r-')
+        title(length(I)*3 + 1);
+        ylabel('Function Value')
+        xlabel('Time')
+        pause(eps)
+    end
+    
+    if juxtapose
+           counter=counter+1;
+           histmat(counter, 1:length(Xtrim1))=Xtrim1;            
+    end
+    
+%     if save==1
+%             sv=length(I);
+%             saveas(figure(1), ['F_' num2str(sv) '.jpg'], 'jpg'); 
+%     end
+       
+    [MSE,Dev,~,WSE] = CompareError(tOrig, Y, gY, Xtrim1);
+    MSE1(counter) = MSE;
+    WSE1(counter) = WSE;
+    Dev1(counter,:) = Dev;
+    
+    % Graph in red on same plot as original data
+Parameters1(counter) = (length(I)*3)+1;
+    %MSE1(end+1)=mean((Y-Xtrim1).^2);
+    
+    % Calculates the mean squared error of the FFT (Method #1)
+    
+end
+%WMSE1=
+
+figure(3)
+loglog(Parameters1,MSE1,'color',[.5,0,0],'Marker','o','markersize',8,'markerfacecolor',[.5,0,0])
+hold on
+% Plot quality of fit against number of parameters
+
+% ----------------------------------------------------------------------
+% Method #2: Metric Tree Trim
+
+MSE2=[];
+% MSE3=[];
+Parameters2=[];
+LL=[];
+counter=0;
+histmat2=(zeros(length(X), length(X)))-1;
+T1=T;
+T2=T;
+Delta = 2*(max(X)-min(X));
+Dcheck = 0;
+% while length(t)>3
+while Dcheck == 0
+    [Xt,tt,Vt,NewT1,NewT2,Lt,Dcheck] = ThreeOptionTrim(X,t,V,T1,T2,L,Delta,2);
+    
+%     [Xt,tt,Vt,NewT,Lt,LL]=trimspeedtests(X,t,V,T,L,LL,0);
+    % Calculate trim using tree method
+    
+    Pts = NewT1>0;
+    Pts = NewT1(Pts);
+
+    Parameters2(end+1)=2*length(Pts)+4;
+    % Number of parameters
+
+% -----------------------------------------------------------------------
+
+XLIN = fun2grid(Xt,tt,tOrig,1);
+XLIN = XLIN';
+
+%     LIN=setdiff(tOrig,tt);
+%     XLIN=Orig;
+%         for i=1:length(tOrig)
+%             if ismember(tOrig(i), LIN)==1
+%             XLIN(i)=-1;
+%             end
+%         end
+% 
+%         for i=1:length(XLIN)
+%             if XLIN(i)==-1
+%             y_1=XLIN(i-1);
+%             n=1;
+%                 while XLIN(i+n)==-1
+%                 n=n+1;
+%                 end
+%             y_2=XLIN(i+n);
+%             x_1=tOrig(i-1);
+%             x_2=tOrig(i+n);
+%             x=tOrig(i);
+%             XLIN(i)= y_1 + (y_2 - y_1)/(x_2 - x_1) * (x - x_1);
+%             end
+%         end
+% The code above linearly interpolates the trimmed line, so that 
+% we have the same length vectors to make our error comparison for Method #2.
+
+% Spl=spline(tt,Xt,tOrig);
+% MSE3(end+1)=mean((Orig-Spl).^2);
+
+
+[MSE,Dev,~,WSE] = CompareError(tOrig,Orig,tOrig,XLIN);
+
+if juxtapose
+   counter=counter+1;
+   histmat2(counter, 1:length(XLIN))= XLIN; 
+   MSE2(counter)=MSE; 
+     if wing==1
+        WSE2(counter)=WSE;
+     end 
+end
+
+
+
+% Calculate the error (quality of fit) between red plot and original
+
+if isplot
+    figure(1)
+    clf(1)
+    plot(tOrig,Orig,'b',tOrig,XLIN,'g.-');
+% tOrig,Spl,'k'
+    title((2*length(NewT2))+4);
+     ylabel('Function Value')
+     xlabel('Time')
+    pause(eps)
+end
+
+% if save==1
+%    sv=2*length(NewT)+4;
+%    saveas(figure(1), ['T_' num2str(sv) '.jpg'], 'jpg'); 
+% end
+       
+% Plot the new trims
+
+T1=NewT1;
+T2=NewT2;
+L=Lt;
+X=Xt;
+t=tt;
+V=Vt;
+% Reset previous values for new trim
+if deviations
+Dev2(counter,:)=Dev;
+end
+
+end
+
+figure(3)
+hold on
+loglog(Parameters2,MSE2,'color',[0,.5,0],'Marker','d','markersize',8,'markerfacecolor',[0,.5,0])
+xlabel('Number of Parameters Needed')
+ylabel('Mean Squared Error') 
+grid on
+hold off
+
+if juxtapose
+    trim=unique(Parameters1);
+  for val=trim
+      tmp1=abs(Parameters2-val);
+      [~, idx1] = min(tmp1); 
+      t=find(Parameters1==val);
+      t=t(end);
+      fplot = histmat(t,:);
+      tplot = histmat2(idx1,:);
+            
+      figure(1)
+      clf
+        plot(tOrig,Orig,'b',tOrig,tplot,'g-', gY, fplot,'r-');
+        str=sprintf('FFT Parameters = %d and Tree Trim Parameters = %d', Parameters1(t), Parameters2(idx1));
+        title(str);
+        ylabel('Function Value')
+        xlabel('Time')
+        pause(eps)
+            if save==1
+            saveas(figure(1), ['Comp_' num2str(val) '.jpg'], 'jpg'); 
+            end
+            
+%             if deviations
+%                 figure(4)
+%                 clf
+%                 D=Dev1(t,:);
+%                 D2=Dev2(idx1,:);
+%                 plot(gY,D, 'r-', tOrig, D2, 'k-');
+%                 TE1=sum(D);
+%                 TotalErrorF(end+1) = TE1; 
+%                 TE2=sum(D2);
+%                 TotalErrorT(end+1) = TE2; 
+%                 str=sprintf('FFT Parameters = %d, Total Error = %d', Parameters1(t), TE1);
+%                 str2=sprintf('Trim Parameters = %d, Total Error = %d', Parameters2(idx1), TE2);
+%                 cell={str; str2};
+%                 title(cell)
+%                 xlabel('Time')
+%                 ylabel('Deviation from Data')
+%             end
+            
+%             if save==1
+%             saveas(figure(4), ['Dev_' num2str(val) '.jpg'], 'jpg');
+%             end
+  end
+end
+
+%   if deviations
+%       figure(5)
+%       index = 1:length(TotalErrorF);
+%       plot(index,TotalErrorF,'r','Marker','x','markersize',8,'markerfacecolor','r')
+%       hold on
+%       plot(index,TotalErrorT,'k','Marker','x','markersize',8,'markerfacecolor','k')
+%       title('Total Error at each Comparison (where parameters are within 2 of each other)')  
+%       xlabel('Trial Number')
+%       ylabel('Total Error')
+%   end
+%   
+  if wing==1
+      %WSE1=abs(WSE1);
+     %WSE2=abs(WSE2);
+     figure(4)
+     loglog(Parameters2,WSE2,'color','g','Marker','d','markersize',8,'markerfacecolor','g')
+     xlabel('Number of Parameters Needed')
+     ylabel('Wing Weighted Mean Squared Error') 
+     hold on 
+     loglog(Parameters1,WSE1,'color','r','Marker','o','markersize',8,'markerfacecolor','r')
+     grid on
+  end
+
+
+
