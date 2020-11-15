@@ -15,26 +15,10 @@ index = 1:N;
 Kids2 = zeros(2,N);
 root2 = index(T2==0);
 % creates vector of kids including d2 parents
-for i = index
-    if i == root2 
-        
-        continue
-    else
-   
-        if T2(i)<=0
-            display('Ive got a bad feeling about this')
-            keyboard
-        % why does t2 have any negative nodes??
-        end
-     
-        if  Kids2(1,T2(i))~= 0
-        
+    for i = index
+        if  Kids2(1,T2(i))~= 0      
             Kids2(2, T2(i)) = i;
         else
             Kids2(1,T2(i))=i;
         end
     end
-end
-
-end
-
