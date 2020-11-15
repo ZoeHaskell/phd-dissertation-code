@@ -1,0 +1,40 @@
+function [Kids2] = KidsArrayFromTree(T1,T2)
+
+%Takes tree vectors and outputs arrays of each kid
+% T1 is a "direct" tree vector with -1 in place of any degree two
+%  nodes. 
+%  T2 includes all the degree two nodes' parent-child links
+
+if isempty(T2)
+    T2 = T1;
+end
+
+N = length(T1);
+index = 1:N;
+% root = index(T1==0);
+Kids2 = zeros(2,N);
+root2 = index(T2==0);
+% creates vector of kids including d2 parents
+for i = index
+    if i == root2 
+        
+        continue
+    else
+   
+        if T2(i)<=0
+            display('Ive got a bad feeling about this')
+            keyboard
+        % why does t2 have any negative nodes??
+        end
+     
+        if  Kids2(1,T2(i))~= 0
+        
+            Kids2(2, T2(i)) = i;
+        else
+            Kids2(1,T2(i))=i;
+        end
+    end
+end
+
+end
+
