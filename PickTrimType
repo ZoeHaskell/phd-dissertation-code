@@ -1,0 +1,52 @@
+function [ Direct ] = PickTrimType(MinLeaf,Parent,Orig,tOrig,V)
+%PickTrimType Pick whether or not to keep a degree two node
+% in a trim based on the error level.
+
+% Find the four points involved in the trim
+
+iMinLeaf = find(V==MinLeaf);
+iParent = find(V==Parent);
+AroundMinLeaf = [iMinLeaf+1, iMinLeaf-1];
+AroundParent = [iParent+1, iParent-1];
+PointsToCheck = unique([iMinLeaf,iParent,AroundMinLeaf,AroundParent]);
+MiniSeriesX = Orig(PointsToCheck);
+MiniSeriesTime = tOrig(PointsToCheck);
+
+% Longer Vector for Better Error Comparison
+% NewTimeIndex = linspace(MiniSeriesTime(1),MiniSeriesTime(end));
+% OriginalX = interp1(MiniSeriesTime,MiniSeriesX,NewTimeIndex);
+
+
+% Get trimmed time series for Direct Trim
+DirectIndex = setdiff(PointsToCheck,[iMinLeaf,iParent]);
+DirectX = Orig(DirectIndex);
+DirectTime = tOrig(DirectIndex);
+
+% Longer Direct Vector for Error Comparison
+NewDirectX = interp1(DirectTime,DirectX,MiniSeriesTime);
+
+% Get Error for Direct Trim
+E1 = sum(abs(NewDirectX-MiniSeriesX).^2);
+
+
+% Get trimmed time series for Plateau Trim
+Deg2Index = setdiff(PointsToCheck,iMinLeaf);
+Deg2X = Orig(Deg2Index);
+Deg2Time = tOrig(Deg2Index);
+
+% Longer Deg2 Vector for Error Comparison
+NewDeg2X = interp1(Deg2Time,Deg2X,MiniSeriesTime);
+
+% Get Error for Plateau Trim
+E2 = sum(abs(NewDeg2X-MiniSeriesX).^2);
+
+% If E1 < E2, Direct == 1; else Direct == 0;
+if E1 < E2
+    Direct = 1;
+else
+    Direct = 0;
+end
+
+
+end
+
