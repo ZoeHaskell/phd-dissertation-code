@@ -1,0 +1,52 @@
+function [SK]=tokunagap(a,c,omg)
+
+if omg==1
+    SK=[0];
+else
+    SK=skeleton(omg);
+    ORD=treerank(omg);
+    n=length(ORD);
+    Indx=1:n;
+    T=getT(a,c,omg);
+    for i=2:omg
+        dx=find(ORD==i);
+        k=length(dx);
+        for j=1:k
+            %ttmp=poissrnd(T);
+            ttmp=geornd(1./(T+1));
+            TT=cumsum(ttmp);
+            n=TT(i-1);
+            if(n~=0)
+                nn=length(SK);
+                SK(nn+1)=SK(dx(j));
+                SK(dx(j))=nn+n;
+                if (n>1)
+                    tmp=nn+1:nn+n-1;
+                    SK=[SK tmp];
+                end
+                list=nn+1:nn+n;
+                m=length(list);
+                if (i==2)
+                    for h=1:m
+                        SK=[SK list(h)];
+                    end
+                else
+                    for d=1:i-1
+                        listIndex=randsample([1:length(list)],ttmp(i-d));
+                        listnew=list(listIndex);
+                        list=setdiff(list,listnew);
+                        ss=length(listnew);
+                        for q=1:ss
+                            tmp=tokunagap(a,c,d);
+                            I=find(tmp==0);
+                            tmp2=tmp+length(SK);
+                            tmp2(I)=listnew(q);
+                            SK=[SK tmp2];
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+return
