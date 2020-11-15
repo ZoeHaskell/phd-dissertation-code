@@ -1,0 +1,195 @@
+function [tst2,Dcheck] = ThreeOptionTrim(tst1,Delta,type)
+
+% Last Edit: June 7 2017
+
+% Inputs: X, t, V, T1, T2, L, Delta
+%       X = The time series
+%       t = time vector
+%       V = node tracker corresponding to T2's node names
+%       T1 = tree with direct parents
+%       T2 = tree with degree two parents
+%       L = length vector corresponding to T2's node names
+%       Delta = cutoff length for leaves
+%       type = tells which trim algorithm to use; plateau or not.
+
+% ---------------------------------------------------------------
+
+X = tst1.time_series;
+t = tst1.time_vector;
+V = tst1.node_tracker;
+T1 = tst1.parent_pointer;
+T2 = tst1.degree_two_parent_pointer;
+L = tst1.edge_lengths;
+
+%
+
+if type == 0
+   Direct = 0; % "Plateau" type trim
+else
+    Direct = 1; % "Direct" type trim
+end
+
+if type == 2
+    ErrChoice = 1;
+else
+    ErrChoice = 0;
+end
+
+
+% Delta is a proportion of the maximum that we should keep
+Delta = Delta*(max(L));
+
+% Check inputs: if length(T1 ==1, return)
+T1length = T1~= -1; %only count direct nodes
+if sum(T1length)==1
+    Xt = X;
+    tt = t;
+    Vt = V;
+    NewT1 = T1;
+    NewT2 = T2;
+    Lt = L;
+    Dcheck=1;
+    return
+end
+
+Dcheck = 0;
+
+% Create Kids2 from T2
+Kids2 = KidsArrayFromTree(T1,T2);
+Deg2= T1==-1;
+
+% Find topological leaves
+index = 1:length(T1);
+leaves = index(~any(Kids2));
+
+% Find one leaf of minimum length
+m = L(leaves)==min(L(leaves));
+leaves = leaves(m);
+MinLeaf = leaves(1);
+
+% Exit the function if this leaf is greater than Delta
+if L(MinLeaf)>Delta
+    Xt = X;
+    tt = t;
+    Vt = V;
+    NewT1 = T1;
+    NewT2 = T2;
+    Lt = L;
+    Dcheck = 1;
+    tst2 = time_series_tree(NewT1, NewT2, Lt, tt, Xt, Vt);
+    return
+end
+
+% Preallocate vector
+Lt = L;
+
+% Sort the time and series by node names
+[VSort,knot] = sort(V);
+Xtangled = X(knot);
+ttangled = t(knot);
+
+% Find Sibling: Kids1(:,T1(leaf)) ~= leaf
+Parent = T1(MinLeaf);
+Siblings = find(T1==Parent);
+SibExists = Siblings~= -1;
+NotSelf = Siblings ~= MinLeaf;
+Sibix = (SibExists & NotSelf);
+Sibling = Siblings(Sibix);
+if ~any(Sibling)
+    keyboard
+end
+
+% Add L(Parent) to Lt(Sibling)
+root = index(T1==0);
+if Parent == 0
+   Parent = root;
+end
+
+if Sibling<=0
+    keyboard
+end
+
+if Parent<=0
+    keyboard
+end
+
+Lt(Sibling) = L(Parent) + L(Sibling); % repeatedly has errors
+Lt(Parent) = 0;
+% Parent is now degree 2
+
+AddDelete = [];
+[Direct,AddDelete] = PickTrimTypeWOdeg2Nodes(MinLeaf,Parent,X,t,V,T1,Deg2,ErrChoice,Direct);
+
+
+% if ErrChoice == 1
+% [Direct] = PickTrimType(MinLeaf,Parent,X,t,V);
+% end
+
+AddDelete = V(AddDelete);
+
+if Direct == 1
+    Delete = [MinLeaf Parent AddDelete];
+else
+    Delete = [MinLeaf AddDelete];
+end
+        % Delete any leaf-chains from the graph
+   
+l = MinLeaf;
+while T1(MinLeaf)~=T2(l)
+        Delete(end+1) = T2(l);
+        Deg2(T2(l)) = false;
+        l = T2(l);
+end
+
+Delete = unique(Delete);
+
+if ~ismember(Parent,Delete)
+Deg2(Parent) = true;
+end
+
+[T1B,T2B,Delete] = TopoDelete(Delete,T1,T2,Parent,Sibling);
+   
+
+% Replace leaf and any leaf-chains with -1
+T1B(Deg2) = -1;
+VSort(Delete+2) = -1;
+Lt(Delete) = -1;
+
+% Rename nodes in Trees and Node Tracker (VSort)
+[NewT1,NewT2,VSort] = RenameNodes(T1B,T2B,Lt,Delete,Deg2,VSort,root);
+
+NewLeaves = setdiff(1:length(NewT2),NewT2); 
+% for debugging only; slows code down
+
+if any(NewT1(NewLeaves)==-1)
+    keyboard
+end
+
+% Delete leaf/chains from Vt, Xt, tt, Lt
+KeepTree = Lt>=0;
+[tt,loose] = sort(ttangled);
+% Reorder the vectors tt, Xt, Vt
+Vt = VSort(loose);
+KeepSeries = Vt>=0;
+
+tt = tt(KeepSeries);
+Xt = Xtangled(loose);
+Xt = Xt(KeepSeries);
+
+Lt = Lt(KeepTree);
+Vt = Vt(KeepSeries);
+
+if length(Lt) ~= length(NewT2)
+    keyboard
+end
+
+if any(NewT2<0)
+    display('caught you red-handed you elusive bug!')
+    keyboard
+end
+
+tst2 = time_series_tree(NewT1, NewT2, Lt, tt, Xt, Vt);
+% OUTPUTS: Xt, tt, Vt, NewT1, NewT2, Lt
+% Or just the new time_series_tree object.
+
+end
