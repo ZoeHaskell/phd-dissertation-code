@@ -1,0 +1,157 @@
+function [ Direct, AddDelete ] = PickTrimTypeWOdeg2Nodes(MinLeaf,Parent,Orig,tOrig,V,T1,Deg2,ErrChoice,Direct)
+%PickTrimType Pick whether or not to keep a degree two node
+% in a trim based on the error level.
+
+% Find the four points involved in the trim
+index = 1:length(T1);
+AddDelete = [];
+
+l = MinLeaf;
+root = index(T1==0);
+    
+% Excluding Degree 2 Nodes
+
+iMinLeaf = find(V==MinLeaf);
+iParent = find(V==Parent);
+
+% if MinLeaf==root || Parent==root
+%    keyboard % pick new root, or just don't delete?
+% end
+
+LHS = min(iParent,iMinLeaf);
+RHS = max(iParent,iMinLeaf);
+
+n = 1;
+RightBase = RHS + 1;
+
+if (RHS + n)> length(V) || V(RHS + n)<=0
+    RightBase = length(V);
+    n = 0;
+%     keyboard
+end
+
+if RightBase ~= (length(V))
+    
+    while Deg2(V(RHS + n)) 
+        AddDelete(end + 1) = RHS + n;
+        n = n + 1;
+        RightBase = RHS + n;
+        if V(RHS + n) <=0
+            RightBase = length(V);
+            break
+        end
+    end
+end
+
+n = 1;
+LeftBase = LHS - 1;
+
+if LHS - n == 1
+    LeftBase = 1;
+    n = 0;
+%     keyboard
+end
+
+if LeftBase ~= 1
+    
+    while Deg2(V(LHS - n))
+        AddDelete(end + 1) = LHS - n;
+        n = n + 1;
+        LeftBase = LHS - n; 
+        if V(LHS - n) <= 0
+            LeftBase = 1;
+            break
+        end
+    end
+end
+
+
+
+if ErrChoice == 1
+
+    PointsToCheck = LeftBase:RightBase;
+    MiniSeriesX = Orig(PointsToCheck);
+    MiniSeriesTime = tOrig(PointsToCheck);
+
+%     figure(5)
+%     clf(5)
+%     plot(MiniSeriesTime,MiniSeriesX,'b')
+
+
+% Longer Vector for Better Error Comparison
+% NewTimeIndex = linspace(MiniSeriesTime(1),MiniSeriesTime(end));
+% OriginalX = interp1(MiniSeriesTime,MiniSeriesX,NewTimeIndex);
+
+
+% Get trimmed time series for Direct Trim
+    DirectIndex = [LeftBase RightBase];
+    DirectX = Orig(DirectIndex);
+    DirectTime = tOrig(DirectIndex);
+
+
+
+% Longer Direct Vector for Error Comparison
+    NewDirectX = interp1(DirectTime,DirectX,MiniSeriesTime);
+
+%     figure(5)
+%     hold on
+%     plot(MiniSeriesTime,NewDirectX,'r')
+
+% Get Error for Direct Trim
+    E1 = sum(abs(NewDirectX-MiniSeriesX).^2);
+
+% Find best node to keep for Plateau Trim
+    if any(AddDelete)
+        Q1 = [tOrig(LeftBase),Orig(LeftBase)];
+        Q2 = [tOrig(RightBase),Orig(RightBase)];
+        Deg2toCheck = [AddDelete, iParent];
+        Distances = zeros(1,length(Deg2toCheck));
+        counter = 1;
+
+        for i = Deg2toCheck
+            P = [tOrig(i),Orig(i)];
+            Distances(counter) = abs(det([Q2-Q1;P-Q1]))/(norm(Q2-Q1));
+            counter = counter + 1;
+        end
+
+        FarthestPoint = Distances == max(Distances);
+        KeepInEstimate = Deg2toCheck(FarthestPoint);
+
+    else
+        KeepInEstimate = iParent;
+    end
+
+% Get trimmed time series for Plateau Trim
+    Deg2Index = [LeftBase,KeepInEstimate,RightBase];
+    Deg2X = Orig(Deg2Index);
+    Deg2Time = tOrig(Deg2Index);
+
+% Longer Deg2 Vector for Error Comparison
+    NewDeg2X = interp1(Deg2Time,Deg2X,MiniSeriesTime);
+% 
+%     figure(5)
+%     hold on
+%     plot(MiniSeriesTime,NewDeg2X,'g')
+
+% Get Error for Plateau Trim
+    E2 = sum(abs(NewDeg2X-MiniSeriesX).^2);
+
+% If E1 < E2, Direct == 1; else Direct == 0;
+    if E1 < E2
+        Direct = 1;
+        AddDelete = LeftBase+1:RightBase-1;
+    else
+        Direct = 0;
+        AddDelete = LeftBase+1:RightBase-1;
+        AddDelete = setdiff(AddDelete,KeepInEstimate);
+    end
+else
+    
+    AddDelete = LeftBase+1:RightBase-1;
+    AddedLater = [iMinLeaf iParent];
+    AddDelete = setdiff(AddDelete,AddedLater);
+    
+end
+
+end
+
