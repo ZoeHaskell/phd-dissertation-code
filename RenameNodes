@@ -1,0 +1,62 @@
+function [ NewT1,NewT2,VSort ] = RenameNodes( T1,T2,Lt,Delete,Deg2,VSort,root)
+% Takes care of the node renaming process after the to-be-deleted nodes are
+% selected.
+NewT1 = T1;
+NewT2 = T2;
+
+index = 1:length(T1);
+root = index(T1==0);
+
+truename = zeros(1,length(NewT2));
+n = Lt==-1;
+n = cumsum(n);
+Deg2(Delete) = false;
+Deg2 = index(Deg2);
+
+
+for i = 1:length(T1)
+    truename(i) = i-n(i);
+end
+truename(1)=1;
+
+iNode = 1:length(NewT2);
+DelCheck = true(1,length(NewT2));
+DelCheck(Delete) = false;
+
+% keyboard
+for i = iNode
+% i
+% size(DelCheck)
+% max(iNode)
+    if DelCheck(i)
+        VSort(i+2) = truename(i);
+        if T2(i)> 0
+        NewT2(truename(i)) = truename(T2(i));
+        end
+        if T1(i)> 0
+        NewT1(truename(i)) = truename(T1(i));
+        end
+    else
+        continue
+    end
+end
+
+VSort(root+2) = truename(root);
+% if truename(root) == 0
+%     
+% end
+root2 = index(T2 == 0);
+root2 = setdiff(root2,Delete);
+if isempty(root2)
+    root2 = root;
+end
+% this can be longer than one!
+% how to distinguish bt tbd and "real" root?
+NewT2(truename(root2)) = 0;
+NewT1(truename(root)) = 0;
+NewT1(truename(Deg2)) = -1;
+NewT1 = NewT1(1:end-length(Delete));
+NewT2 = NewT2(1:end-length(Delete));
+
+end
+
