@@ -1,0 +1,167 @@
+% Defines a class of time_series_tree objects, which store data about trees
+% and their corresponding Harris paths in one place, and which have methods
+% defined on them for visualizing, as well as for pruning, resulting in
+% modified time_series_tree objects. 
+
+classdef time_series_tree
+         
+        properties
+            parent_pointer = []
+            degree_two_parent_pointer = []
+            edge_lengths = []
+            time_vector = []
+            time_series = []
+            node_tracker = []
+        end
+        
+       methods
+              
+           function obj = time_series_tree(parent_pointer, degree_two_parent_pointer, edge_lengths, time_vector, time_series, node_tracker)
+            % initializes an instance of the object
+            % two initialization modes: "construct from tree" and "construct
+            % from series"
+            
+                 if nargin >= 5
+                     % do nothing but create the instance and set the
+                     % properties
+                     obj.parent_pointer = parent_pointer;
+                     if ~isempty(degree_two_parent_pointer)
+                        obj.degree_two_parent_pointer = degree_two_parent_pointer;
+                     end
+                     obj.edge_lengths = edge_lengths;
+                     obj.time_vector = time_vector;
+                     obj.time_series = time_series;
+                     obj.node_tracker = node_tracker;
+                     
+                 elseif isempty(obj.parent_pointer) && ~isempty(obj.time_series)
+                     % Use time series as starting point
+                     obj = construct_from_series(obj);
+                 elseif isempty(obj.time_series) && ~isempty(obj.parent_pointer)
+                     % Use tree as starting point
+                     obj = construct_from_tree(obj);
+                 end
+                                 
+                  
+             
+           end
+           
+           
+           function P = set.parent_pointer(P,T)
+               if isvector(T) && sum(T==0)==1 && sum(T<0)==0
+                P.parent_pointer = T;
+               else
+                error('Invalid Parent Pointer')
+               end
+               
+               if isempty(P.time_series)
+                  P = construct_from_tree(P); 
+               end
+           end
+           
+           function E = set.edge_lengths(E,L)
+               if sum(L<0)==0 && length(L) == length(E.parent_pointer) && isvector(L)
+                   E.edge_lengths = L;
+               else
+                   error('Invalid Edge Length Vector')
+               end
+           end
+           
+           function T = set.time_series(T,X)
+               % Checks appropriate conditions for setting the time_series
+               % property of a time_series_tree object. 
+              
+               if isempty(T.time_vector)
+               % Use default even spacing if no time vector provided.
+                  T.time_vector = 1:length(X); 
+               end
+               
+               if isequal(length(X), length(T.time_vector))
+               % We want the series used to be standardized (mean 0, variance 1)
+               mu = mean(X);
+               sigma_squared = var(X);
+               T.time_series = ((X - mu)/sigma_squared);
+               
+               else
+                   error('time series and time vector are different lengths')
+               end
+                                             
+               if X(1) ~= X(end)
+                   partial_tree = 1;
+               else
+                   partial_tree = 0;
+               end
+                                      
+               if isempty(T.parent_pointer)
+                   T = construct_from_series(T, partial_tree);
+               end                        
+          
+           end
+                      
+           
+          function plot_tree(obj)
+            figure()
+            treeplot(obj.parent_pointer)
+            set(gca,'ydir','reverse')
+            [x,y]=treelayout(obj.parent_pointer);
+            for i = 1:length(x)
+                text(x(i),y(i),num2str(i))
+            end
+          end
+          
+          
+        function plot_time_series(tst1,tst2,node_labels)
+            % node_labels is logical; one for labels, zero for no labels
+            if nargin == 1
+                tst2 = [];
+                node_labels = 0;
+            end
+            
+            if isempty(node_labels)
+                node_labels = 0;
+            end
+            
+            figure(1)
+            clf(1)
+            plot(tst1.time_vector,tst1.time_series,'b-','markersize',6,'markerfacecolor','b')
+            grid
+            xlabel('Time','FontSize',18);
+            ylabel('Function X(t)','Fontsize',18);
+            axis([0 tst1.time_vector(end) min(tst1.time_series)-1 max(tst1.time_series)+5])
+            if ~isempty(tst2)
+                hold on
+                plot(tst2.time_vector,tst2.time_series,'r-','markersize',6,'markerfacecolor','r')
+            end
+            if node_labels
+               for i = 1:length(tst1.node_tracker)
+                   text(tst.time_vector(i),tst1.time_series(i),num2str(tst1.node_tracker(i)));
+               end
+            end
+        end
+        
+       
+          function tst2 = prune_tree(tst1, Delta, type)
+              % prune_tree  Prunes the input time_series_tree object according to the type specified (0 ignores any 
+              % degree-two nodes, and 1 keeps degree-two nodes if they appear significant (e.g. to keep
+              % plateau data). Delta is the quantile above which leaves will not be removed in a trim.
+              if isempty(Delta)
+                 Delta = 0.8;
+                 warning('trim threshold parameter Delta set to 0.8')
+              end
+              
+              if isempty(type)
+                 type = 0;
+                 warning('trim type was set to default; plateaus will be ignored. To change this, set the type variable to one')
+              end
+                            
+              [tst2,~] = ThreeOptionTrim(tst1,Delta,type);
+           
+          end
+          
+            %function analyze_x like leaf length distributions
+            
+            
+       end
+        
+ end
+
+            
