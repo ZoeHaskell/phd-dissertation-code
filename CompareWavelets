@@ -1,0 +1,336 @@
+
+isplot=1;
+save = 1;
+thp = 1;
+juxtapose = 1;
+wing = 0;
+deviations = 0;
+figure(3)
+clf(3)
+
+Delta = 0.2;
+
+if thp
+    T = tokunagap(1,2,6);
+    L = exprnd(1,1,length(T));
+    [X,V,t] = harrispathbb(T,L);
+ 
+
+%Generate a time series of length 2^n (here n=9)
+else
+    X1=cumsum(randi(100,1,510)-50);
+    X1=X1 - min(X1)+100;
+    t1 = 1:length(X1);
+    [~,X] = Fn2Excursion(t1,X1);
+end
+
+
+
+if deviations
+    counter=0;
+    Dev1=[];
+    Dev2=[];
+end
+
+
+Parameters1=[];
+Parameters2=[];
+MSE1=[];
+MSE2=[];
+
+n1 = length(X);
+base2 = fix(log(n1)/log(2)+0.4999); %nearest power of two
+newlength = 2^(base2+1);
+pad = newlength-n1;
+if pad > n1
+   xInverted = fliplr(X);
+   Mirror = [X xInverted];
+   Copies = floor(newlength/(n1*2));   
+   Remaining = newlength - (2*n1*Copies);
+   i = 1: Remaining;
+   i = i-1; 
+   ind = n1 - i;
+   LastSlice = xInverted(ind);
+   X = repmat(Mirror, 1, Copies);
+   X = [X LastSlice];
+   X(end) = 0;
+else
+    i = 1:pad; i = i-1;
+    ind = n1 - i;
+    xInverted = X(ind);
+    X = [X xInverted]; %padded  
+    X(end) = 0;
+end
+
+t = 1:length(X);
+
+gY = linspace(min(t),max(t),2^(base2+1));
+Y = fun2grid(X,t,gY,1);
+Y = Y';
+
+if wing
+    WSE1 = [];
+    WSE2 = [];
+%     n = 1;
+%     percentile = .9;
+    [W1,~,~,~,~,~,ind1] = ewing(X);
+%     M = quantile(W1, percentile);
+    WTruth = ones(1,length(X));
+    Wm = sum(W1);
+    WTruth(ind1) = W1;
+    WTruth = WTruth./Wm;
+%     while W1(n) >= M
+%         n = n+1;
+%     end
+%     WTruth = WTruth.*0.5;
+%     WTruth(ind1(1:n)) = 1;
+    WTruth2 = WTruth;
+    
+else
+    WTruth2 = ones(1,length(X));
+    WTruth = WTruth2;
+end
+
+
+if juxtapose
+    histmat=zeros(n1, n1);
+    histmat=histmat-1;
+    counter = 0;
+end
+
+%Create orthonormal basis of symmlets, decompose into wavelet coefficients
+qmf4=MakeONFilter('Symmlet',4);
+WC=FWT_PO(Y,1, qmf4);
+
+%Generate threshold using Donoho-Johnstone "universal" threshold. I have
+%noise median set to one right now.
+
+for sig = 1:100:2000
+    threshold=sig;
+%threshold = sqrt(2*log(512*sig));
+
+%Apply hard-threshold low-pass filter
+% filter=zeros(size(WC));
+I=abs(WC)>threshold;
+Keep=WC.*I;
+
+K=find(Keep>0);
+
+%Apply and plot inverse wavelet transform
+WavTrim=IWT_PO(Keep,1,qmf4);
+
+
+
+    if isplot
+    figure(1)
+    plot(t,X,'b', t, WavTrim, 'm')
+    title(length(K));
+%     title(threshold);
+    ylabel('Function Value')
+    xlabel('Time')
+    axis([0 n1 min(X) max(X)])
+    end
+    pause(3)
+ 
+
+Parameters1(end+1) = length(K)*3 + 1;
+
+Xea = X(1:n1);
+tea = 1:n1;
+WavTrimea = WavTrim(1:n1);
+WTruthea = WTruth(1:n1);
+[MSE,Dev,TE1,~] = CompareError(tea,Xea,tea,WavTrimea,WTruthea);
+MSE1(end+1) = MSE;
+
+   if juxtapose
+    counter=counter+1;
+    histmat(counter, 1:length(WavTrimea))=WavTrimea;
+   end
+    
+    if wing
+        WSE1(end+1) = WSE;
+    end
+
+    if deviations
+    Dev1(counter, :)=Dev;
+    end
+
+end
+
+figure(3)
+clf(3)
+loglog(Parameters1,MSE1,'m', 'Marker','o','markersize',8,'markerfacecolor','m')
+hold on
+
+LL=[];
+counter=0;
+histmat2=(zeros(n1,n1))-1;
+Orig=X;
+tOrig=t;
+
+[T,L,~,~,Xs,Fs,~]=leveltree(X,t);
+T1 = T;
+T2 = T;
+V=[1:length(T)];
+V=[0 V 0]; %root addition so trim_hpzoe knows how to treat nodes
+tlt=[1 Xs length(X)]; %avoiding starting time at zero, same issue
+Xlt= [0 Fs 0]; %root addition
+tltc=tlt;
+Xltc=Xlt;
+Delta = Delta*(max(Xlt)-min(Xlt));
+Dcheck=0;
+
+while Dcheck==0
+%    [Xt,tt,Vt,NewT1,NewT2,Lt,Dcheck] = SingleTrim(Xlt,tlt,V,T1,T2,L,Delta);
+   [Xt,tt,Vt,NewT,Lt,LL]=trimspeedtests(Xlt,tlt,V,T,L,LL,0);
+    % Calculate trim using tree method
+
+    Parameters2(end+1)=2*length(NewT2)+4;
+    % Number of parameters
+
+% -----------------------------------------------------------------------
+
+XLIN = fun2grid(Xt,tt,tOrig,1);
+XLIN = XLIN';
+
+
+%     LIN=setdiff(tOrig,tt);
+%     XLIN=Orig;
+%         for i=1:length(tOrig)
+%             if ismember(tOrig(i), LIN)==1
+%             XLIN(i)=-1;
+%             end
+%         end
+% 
+%         for i=1:length(XLIN)
+%             if XLIN(i)==-1
+%             y_1=XLIN(i-1);
+%             n=1;
+%                 while XLIN(i+n)==-1
+%                 n=n+1;
+%                 end
+%             y_2=XLIN(i+n);
+%             x_1=tOrig(i-1);
+%             x_2=tOrig(i+n);
+%             x=tOrig(i);
+%             XLIN(i)= y_1 + (y_2 - y_1)/(x_2 - x_1) * (x - x_1);
+%             end
+%         end
+% The code above linearly interpolates the trimmed line, so that 
+% we have the same length vectors to make our error comparison for Method #2.
+tOrigea = tOrig(1:n1);
+Origea = Orig(1:n1);
+XLINea = XLIN(1:n1);
+WTruth2ea = WTruth2(1:n1);
+
+[MSE,Dev,TE2,~] = CompareError(tOrigea,Origea,tOrigea,XLINea,WTruth2ea);
+
+MSE2(end+1)=MSE; 
+% Calculate the error (quality of fit) between red plot and original
+
+    if wing 
+    WSE2(end+1) = WSE;
+    end
+    
+ counter=counter+1;
+ histmat2(counter, 1:length(XLINea))= XLINea;      
+     
+    if deviations
+    Dev2(counter,:)=Dev;
+    end
+    
+    if isplot
+    figure(1)
+    clf
+    plot(tOrigea,Origea,'b',tOrigea,XLINea,'g.-')
+    title(2*length(NewT2));
+    ylabel('Function Value')
+    xlabel('Time')
+    end
+     
+     pause(eps)
+    
+
+% Plot the new trims
+
+T1=NewT1;
+T2 = NewT2;
+L=Lt;
+Xlt=Xt;
+tlt=tt;
+V=Vt;
+% Reset previous values for new trim
+ 
+end
+
+figure(3)
+hold on
+loglog(Parameters2,MSE2,'color',[0,.5,0],'Marker','d','markersize',8,'markerfacecolor',[0,.5,0])
+xlabel('Number of Parameters Needed')
+ylabel('Mean Squared Error') 
+grid on
+hold off
+
+if juxtapose
+    trim=unique(Parameters1);
+        for val=trim;
+            tmp1=abs(Parameters2-val);
+            [~, idx1] = min(tmp1); 
+            t=find(Parameters1==val);
+            t=t(1);
+            wavplot = histmat(t,:);
+            tplot = histmat2(idx1,:);
+            
+            figure(1)
+            clf
+            plot(tOrigea,Origea,'b',tOrigea,tplot,'g-', tOrigea, wavplot,'m-');
+            str=sprintf('Wavelet Parameters = %d and Tree Trim Parameters = %d', Parameters1(t), Parameters2(idx1));
+            title(str);
+            ylabel('Function Value')
+            xlabel('Time')
+            axis([0 n1 0 max(Orig)]);
+                if save
+                saveas(figure(1), ['Comp_' num2str(val) '.jpg'], 'jpg'); 
+                end
+            
+%                 if deviations
+%                     figure(4)
+%                     clf
+%                     D=Dev1(t,:);
+%                     D2=Dev2(idx1,:);
+%                     if isplot
+%                         plot(tOrigea,D, 'r-', tOrigea, D2, 'k-');
+%                     end
+%             
+                    
+%                     if isplot
+%                     str=sprintf('Wavelet Parameters = %d, Total Error = %d', Parameters1(t), TE1);
+%                     str2=sprintf('Trim Parameters = %d, Total Error = %d', Parameters2(idx1), TE2);
+%                     cell={str; str2};
+%                     title(cell)
+%                     xlabel('Time')
+%                     ylabel('Deviation from Data')
+%                     end
+%                     
+%                     if save
+%                         saveas(figure(4), ['Dev_' num2str(val) '.jpg'], 'jpg');
+%                     end
+%                 end
+  end
+    
+end
+  
+if wing
+    figure(4)
+     loglog(Parameters2,WSE2,'color','g','Marker','d','markersize',8,'markerfacecolor','g')
+     xlabel('Number of Parameters Needed')
+     ylabel('Wing Weighted Mean Squared Error') 
+     hold on 
+     grid on
+     loglog(Parameters1,WSE1,'color','r','Marker','o','markersize',8,'markerfacecolor','r')
+end
+
+
+        figure(1)
+        axis([0 n1 0 max(X)]);
+
