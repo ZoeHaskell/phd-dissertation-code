@@ -22,7 +22,6 @@ if root ~= root2
     Delete(end +1) = root2;
     Delete = unique(Delete);
     root2 = root;
-        %something
 end
 
 if any(Delete==0) || any(Delete==root)
@@ -59,10 +58,6 @@ for Del = Delete
     if any(Logi2)
         CurrentKids = index(Logi2);
         CurrentParent = T2(Del);
-%         if CurrentParent==0
-%             T2B(CurrentKids) = CurrentParent;
-%            continue 
-%         end
         CatchDeleteChains = Delete==CurrentParent;
         while any(CatchDeleteChains)
             CurrentParent = T2(CurrentParent);
