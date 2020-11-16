@@ -37,9 +37,7 @@ if plateaus == 1
   Plateaus = false(1,length(f));
   for index = 1:length(Plateaus1)
       if Plateaus1(index) == 1 && Plateaus2(index) == 1
-%        Plateaus(index) = true;
          Plateaus(index + 1) = true;
-%        Plateaus(index + 2) = true;
       end
   end
 
@@ -170,10 +168,6 @@ if any(diff(sort(Imin))<2)
 end
 [Fss,I]=sort(-Fs(Imin)); % descending local minima
 Imin=Imin(I); % indices of local minima in descending order 
-
-% Somewhere in here I need to locate plateaus both left/right
-% and by height (?) to make sure they are placed correctly
-% in the tree.
 
 T=zeros(1,length(Fs)); % tree
 L=zeros(size(T)); % link lengths
