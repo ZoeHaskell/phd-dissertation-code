@@ -120,11 +120,6 @@ Lt(Parent) = 0;
 AddDelete = [];
 [Direct,AddDelete] = PickTrimTypeWOdeg2Nodes(MinLeaf,Parent,X,t,V,T1,Deg2,ErrChoice,Direct);
 
-
-% if ErrChoice == 1
-% [Direct] = PickTrimType(MinLeaf,Parent,X,t,V);
-% end
-
 AddDelete = V(AddDelete);
 
 if Direct == 1
@@ -159,11 +154,6 @@ Lt(Delete) = -1;
 [NewT1,NewT2,VSort] = RenameNodes(T1B,T2B,Lt,Delete,Deg2,VSort,root);
 
 NewLeaves = setdiff(1:length(NewT2),NewT2); 
-% for debugging only; slows code down
-
-if any(NewT1(NewLeaves)==-1)
-    keyboard
-end
 
 % Delete leaf/chains from Vt, Xt, tt, Lt
 KeepTree = Lt>=0;
@@ -180,11 +170,6 @@ Lt = Lt(KeepTree);
 Vt = Vt(KeepSeries);
 
 if length(Lt) ~= length(NewT2)
-    keyboard
-end
-
-if any(NewT2<0)
-    display('caught you red-handed you elusive bug!')
     keyboard
 end
 
