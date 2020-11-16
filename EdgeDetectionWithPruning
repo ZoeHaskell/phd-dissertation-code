@@ -2,9 +2,6 @@ function [M,BWm] = PruneImage(data,map,process,Delta0,bwthres)
 % Uses tree pruning to detect edges in an image
 %--------------------------------------------------
 
-
-% fun2grid with islin 1-- lin interpolated vars for trim vector
-
 S = size(data);
 if length(S)>2
     data = rgb2gray(data);
@@ -14,34 +11,12 @@ end
 data = double(data);
 
 if process == 1
-%     Gx = [-1 0 1, -2 0 2, -1 0 1];
-%     Gy = [-1 -2 -1, 0 0 0, 1 2 1];
-%     TGx = conv2(double(data),double(Gx),'same');
-%     TGy = conv2(double(data),double(Gy),'same');
-%     TG = cat(3, TGx, TGy);
-%     MG = mean(TG,3);
-% % AbMG = abs(MG);
-%     AbMG = MG-min(min(MG))+1;
-%     I_max = max(max(AbMG));
-%     I_min = min(min(AbMG));
-%     level = 0.1*(I_max - I_min) + I_min;
-%     Ibw = max(AbMG,level.*ones(size(AbMG)));
-% 
-% %load('MG.mat');
-% 
-%     im=Ibw; %set the name of the image to be used after this point
 Sigma = 1;
  Nx1=20;Sigmax1=Sigma;Nx2=20;Sigmax2=Sigma;Theta1=0;
 %    Y-axis direction filter:
      Ny1=20;Sigmay1=Sigma;Ny2=20;Sigmay2=Sigma;Theta2=0;
-% 2. The thresholding parameter alfa:
-     alfa=0.1;
-     
-% Get the initial image lena.gif
-
-% if isempty(map)
-% map = colormap(gray);
-% end
+% 2. The thresholding parameter alpha:
+     alpha=0.1;
 
 if isempty(map)
     w = data;
@@ -78,23 +53,18 @@ end
 tx = 1:indx;
 ty = 1:indy;
 LL=[];
-%mov=struct();
-% threshold=0;
-%for TrimNum=1:5;
+
 Edges=zeros(indx,indy);
 VEdges=zeros(indx,indy);
 h = waitbar(0,'Please wait...');
-% Delta = .1*(max(max(MG))- min(min(MG)));
-%Delta = .007*(max(max(MG)));
 
 Delta = Delta0*(max(max(MG)) - min(min(MG)));
-% keyboard
 
 for i=tx
   
     waitbar(i/(indx+indy))
         Y = im(i,:);
-    [T,L,~,~,Xs,Fs,~]=LTP(Y,ty);
+    [T,L,~,~,Xs,Fs,~]=level_set_tree(Y,ty);
     T1 = T;
     T2 = T;
     V=[1:length(T)];
@@ -114,7 +84,7 @@ for i=tx
     else
         Dcheck = 0;
        while Dcheck == 0
-        [Xt,tt,Vt,NewT1,NewT2,Lt,Dcheck]=SingleTrim(Xlt,tlt,V,T1,T2,L,Delta);
+        [Xt,tt,Vt,NewT1,NewT2,Lt,Dcheck]=pruning(Xlt,tlt,V,T1,T2,L,Delta);
         T1=NewT1;
         T2=NewT2;
         L=Lt;
@@ -127,15 +97,8 @@ for i=tx
         end
         Weights = zeros(1,length(tlt));
         z = 1:length(NewT2);
-%         leaves = setdiff(z,NewT2);
-%         leavesLOG = ismember(Vt,leaves);
-%         LeafTS = Xlt>=Delta;
         for k=1:length(tlt)
-%             Weights(k) = abs(Xlt(k)).*leavesLOG(k);
-                   Weights(k) = abs(Xlt(k));
-%             Weights(k) = abs(Xlt(k));
-%             NormRow(i) = sum(abs(Xlt));
-%             Edges(i,round(tlt(k)))=Weights(k);
+              Weights(k) = abs(Xlt(k));
         end
       Flin = fun2grid(Weights,tlt,ty,1);
       Edges(i,:) = Flin;
@@ -144,8 +107,7 @@ for i=tx
       plot(ty,Y,'k')
       hold on
       plot(ty,Flin,'r')
-%       keyboard
-      
+   
       
     end
         
@@ -159,7 +121,7 @@ for j=ty
     waitbar((j+indx)/(indy+indx))
     Y=im(:,j);
       
-    [T,L,~,~,Xs,Fs,~]=LTP(Y,tx);
+    [T,L,~,~,Xs,Fs,~]=level_set_tree(Y,tx);
     V=1:length(T);
     V=[0 V 0]; %root addition
     tlt=[1 Xs length(Y)]; %avoiding starting time at zero, same issue
@@ -182,7 +144,7 @@ for j=ty
 %      for k=1:TrimNum  % find while loop condition to replace this with
     while Dcheck == 0     
 
-        [Xt,tt,Vt,NewT1,NewT2,Lt,Dcheck]=ThreeOptionTrim(Xlt,tlt,V,T1,T2,L,Delta);
+        [Xt,tt,Vt,NewT1,NewT2,Lt,Dcheck]=pruning(Xlt,tlt,V,T1,T2,L,Delta);
         T1=NewT1;
         T2=NewT2;
         L=Lt;
@@ -197,19 +159,9 @@ for j=ty
    
        Weights = zeros(1,length(tlt));
        z = 1:length(NewT2);
-%         leaves = setdiff(z,NewT2);
-  
-%         leavesLOG = ismember(V,leaves);
-%          LeafTS = Xlt>=Delta;
 
-% if length(leavesLOG) ~= length(tlt)
-%     length(leavesLOG)
-%     length(tlt)
-% end
         for l=1:length(V)
-%             Weights(l) = abs(Xlt(l)).*leavesLOG(l);
                Weights(l) = abs(Xlt(l));
-%             NormCol(j) = sum(abs(Xlt));
             VEdges(round(tlt(l)),j)=Weights(l);
         end
         
@@ -222,36 +174,23 @@ for j=ty
       plot(tx,Y,'k')
       hold on
       plot(tx,Flin,'r')
-%       keyboard
-   
+  
 end
 close(h);
 
-% Want to include some thresholding here based upon min(M(r,c)/(NormRow(r)
-% , M(r,c)/NormCol(c))) to see if that helps denoise.
-
-% D=cat(3,Edges, VEdges);
-% M=mean(D,3);
 EdgeScale = max(max(Edges));
 Edges = Edges/EdgeScale;
 VEdgeScale = max(max(VEdges));
 VEdges = VEdges/VEdgeScale;
-% figure(1)
-% imshow(Edges,[])
-% title('Horizontal Trim')
-% figure(2)
-% imshow(VEdges,[])
-% title('Vertical Trim')
+
 M = zeros(indx,indy);
 
-%no for loop
 for i = 1:indx
     for j = 1:indy
         M(i,j) = Edges(i,j) + VEdges(i,j);
     end
 end
 
-%movie(mov);
 figure(3)
 set(gca,'XTick',1:(indx+1),'YTick',1:(indy+1),...  %# Change some axes properties
         'XLim',[1 indx+1],'YLim',[1 indy+1],...
@@ -261,66 +200,11 @@ imshow(M,[])
 title('Sum of Trim Results')
 
 
-% WB = wiener2(M, [5 5]);
-% figure(6)
-% imshow(WB)
-% title('With 5x5 Wiener Filter')
-
-% 
-% 
-%  krnl=[-1 -1 -1; -1 8 -1; -1 -1 -1]; 
-%      Ix=conv2(WB,krnl,'same'); %"Brightens" everything into whites or blacks
-%    figure(5)
-%    imshow(Ix)
-%    title('Sum with Convolution Filter')
-
 BWm = im2bw(M,bwthres);
 figure(4)
 title('Black and White')
 imshow(BWm,[])
 
-% MM=medfilt2(BWm,[2 2]);
-% figure()
-% title('With 2x2 Median Filter')
-% imshow(MM,[])
-
-% keyboard
-
-
-% figure(9)
-% 
-% set(gca,'XTick',1:(indx+1),'YTick',1:(indy+1),...  %# Change some axes properties
-%         'XLim',[1 indx+1],'YLim',[1 indy+1],...
-%         'GridLineStyle','-','XGrid','on','YGrid','on');
-% image(M)
-% for r = 1:indx
-%     for c = 1:indy
-%         NormbyRow = M(r,c) / (NormRow(r));
-%         NormbyCol = M(r,c) / (NormCol(c));
-%         AvNorm = max(NormbyRow,NormbyCol);
-%         if AvNorm < 0.05
-%             M(r,c) = 0;
-%         end
-%     end
-% end
-
-% figure(2)
-% imshow(M)
-
-%imshow(G)
-% figure(1)
-% Lena=imagesc((1:indx)+0.5,(1:indy)+0.5,M); 
-% figure(2)
-
-
-
- %G=conv2(MM,gauss(30,30,5,5),'same');
-%TST=MM-G;
-%figure(3)
-%imshow(TST)
-%# Plot the image
-%map=254*colormap(gray(255))+1;
 axis equal   
-
 
 end
