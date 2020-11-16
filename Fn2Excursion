@@ -1,0 +1,104 @@
+
+function [t1,X1] = Fn2Excursion(t,X)
+%Excursion Extraction for a time series X(t)
+%
+%Inputs:
+%       X(t) is the function to be analysed; t = [1:length(X)] by default
+% 
+% Outputs:
+%       X1(t1) is the longest excursion to be found in X(t), shifted to
+%       begin at the origin.
+% --------------------------------------------------------------------
+%Check inputs:
+
+if exist('t','var')~=1
+    t = 1:length(X);
+end
+
+if length(t) ~= length(X)
+    error('t and X must be the same size')
+end
+
+%Use ewing to find the longest unbroken line (ignoring arbitrary bounds
+% provided by axes)
+[w,wl,wr,time,ext,s,ind] = ewing(X,t);
+for i = 1:length(w)
+       if s(i) ==1
+          Truth = X>=ext(i);
+            
+            if wl(i)>=wr(i)
+                Truth(time(i):end)=0;
+            else
+                Truth(1:time(i))=0;
+            end
+                       
+        else
+            Truth = X<=ext(i);
+            
+            if wl(i)>=wr(i)
+                Truth(time(i):end) = 0;
+            else
+                Truth(1:time(i)) = 0;
+            end
+            
+        end
+        
+        if max(Truth)==0;
+            continue
+        else
+            x1 = time(i);
+            y1 = ext(i);
+            x2 = t(Truth);
+            y2 = X(Truth);
+            
+            if length(y2) > 1
+                y = y2 - y1;
+                y2 = min(y);
+                j = y == y2;
+                x2 = x2(j);
+                % because x2,y2 are sometimes vectors
+            end
+            
+            break
+        end
+       
+end
+
+
+    %Given this line, get endpoints (x1,y1) and (x2,y2)   
+ 
+    if s(i) == 1
+        my1 = min(y1);
+        my2 = min(y2);
+        vshift = min(my1,my2);
+        X1 = abs(X - vshift);
+        %flips the series
+        
+    else
+        vshift = max(y1,y2);
+        X1 = X - vshift;
+    end
+mx1 = min(x1);
+mx2 = min(x2);
+hshift = abs(min(mx1,mx2));
+x1 = x1 - hshift;
+x2 = x2 - hshift;
+t1 = t - hshift;
+
+%Shift this segment of the time series to start at origin
+Mx1 = max(x1);
+Mx2 = max(x2);
+M = max(Mx1,Mx2);
+Clip = t1 >=0 & t1 <= M;
+t1 = t1(Clip);
+X1 = X1(Clip);
+X1(1) = 0;
+X1(end) = 0;
+%clip remainder
+
+%Output the resulting excursion as a new time series, adjust the t vector
+%as needed.
+
+   
+
+end
