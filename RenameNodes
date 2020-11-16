@@ -23,11 +23,7 @@ iNode = 1:length(NewT2);
 DelCheck = true(1,length(NewT2));
 DelCheck(Delete) = false;
 
-% keyboard
 for i = iNode
-% i
-% size(DelCheck)
-% max(iNode)
     if DelCheck(i)
         VSort(i+2) = truename(i);
         if T2(i)> 0
@@ -42,16 +38,12 @@ for i = iNode
 end
 
 VSort(root+2) = truename(root);
-% if truename(root) == 0
-%     
-% end
 root2 = index(T2 == 0);
 root2 = setdiff(root2,Delete);
 if isempty(root2)
     root2 = root;
 end
-% this can be longer than one!
-% how to distinguish bt tbd and "real" root?
+
 NewT2(truename(root2)) = 0;
 NewT1(truename(root)) = 0;
 NewT1(truename(Deg2)) = -1;
