@@ -198,7 +198,7 @@ Delta = 2*(max(X)-min(X));
 Dcheck = 0;
 % while length(t)>3
 while Dcheck == 0
-    [Xt,tt,Vt,NewT1,NewT2,Lt,Dcheck] = ThreeOptionTrim(X,t,V,T1,T2,L,Delta,2);
+    [Xt,tt,Vt,NewT1,NewT2,Lt,Dcheck] = pruning(X,t,V,T1,T2,L,Delta,2);
     
     Pts = NewT1>0;
     Pts = NewT1(Pts);
