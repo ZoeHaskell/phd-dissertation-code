@@ -117,8 +117,6 @@ K=find(Keep>0);
 %Apply and plot inverse wavelet transform
 WavTrim=IWT_PO(Keep,1,qmf4);
 
-
-
     if isplot
     figure(1)
     plot(t,X,'b', t, WavTrim, 'm')
@@ -178,7 +176,7 @@ Delta = Delta*(max(Xlt)-min(Xlt));
 Dcheck=0;
 
 while Dcheck==0
-   [Xt,tt,Vt,NewT,Lt,LL]=ThreeOptionTrim(Xlt,tlt,V,T,L,LL,0);
+   [Xt,tt,Vt,NewT,Lt,LL]=pruning(Xlt,tlt,V,T,L,LL,0);
 
     Parameters2(end+1)=2*length(NewT2)+4;
     % Number of parameters
