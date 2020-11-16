@@ -14,10 +14,6 @@ root = index(T1==0);
 iMinLeaf = find(V==MinLeaf);
 iParent = find(V==Parent);
 
-% if MinLeaf==root || Parent==root
-%    keyboard % pick new root, or just don't delete?
-% end
-
 LHS = min(iParent,iMinLeaf);
 RHS = max(iParent,iMinLeaf);
 
@@ -27,7 +23,6 @@ RightBase = RHS + 1;
 if (RHS + n)> length(V) || V(RHS + n)<=0
     RightBase = length(V);
     n = 0;
-%     keyboard
 end
 
 if RightBase ~= (length(V))
@@ -49,7 +44,6 @@ LeftBase = LHS - 1;
 if LHS - n == 1
     LeftBase = 1;
     n = 0;
-%     keyboard
 end
 
 if LeftBase ~= 1
@@ -73,29 +67,13 @@ if ErrChoice == 1
     MiniSeriesX = Orig(PointsToCheck);
     MiniSeriesTime = tOrig(PointsToCheck);
 
-%     figure(5)
-%     clf(5)
-%     plot(MiniSeriesTime,MiniSeriesX,'b')
-
-
-% Longer Vector for Better Error Comparison
-% NewTimeIndex = linspace(MiniSeriesTime(1),MiniSeriesTime(end));
-% OriginalX = interp1(MiniSeriesTime,MiniSeriesX,NewTimeIndex);
-
-
 % Get trimmed time series for Direct Trim
     DirectIndex = [LeftBase RightBase];
     DirectX = Orig(DirectIndex);
     DirectTime = tOrig(DirectIndex);
 
-
-
 % Longer Direct Vector for Error Comparison
     NewDirectX = interp1(DirectTime,DirectX,MiniSeriesTime);
-
-%     figure(5)
-%     hold on
-%     plot(MiniSeriesTime,NewDirectX,'r')
 
 % Get Error for Direct Trim
     E1 = sum(abs(NewDirectX-MiniSeriesX).^2);
@@ -128,10 +106,6 @@ if ErrChoice == 1
 
 % Longer Deg2 Vector for Error Comparison
     NewDeg2X = interp1(Deg2Time,Deg2X,MiniSeriesTime);
-% 
-%     figure(5)
-%     hold on
-%     plot(MiniSeriesTime,NewDeg2X,'g')
 
 % Get Error for Plateau Trim
     E2 = sum(abs(NewDeg2X-MiniSeriesX).^2);
