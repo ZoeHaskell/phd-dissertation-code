@@ -1,0 +1,9 @@
+function [TR]= skeleton(r)
+
+% Auxilliary to tokunagap
+
+Vec1= 1:2^(r-1)-1;
+Vec2= 1:2^(r-1)-1;
+Vec= interleave(Vec1,Vec2);
+TR=[0 Vec];
+return 
