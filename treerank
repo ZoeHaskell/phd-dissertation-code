@@ -1,0 +1,8 @@
+function [RNK]= treerank(r)
+
+% Auxilliary to tokunagap
+
+RNK=r;
+for jj=1:r-1
+     RNK=[RNK  repmat(r-jj,1,2^jj)];
+end
