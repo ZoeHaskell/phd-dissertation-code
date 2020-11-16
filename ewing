@@ -1,0 +1,165 @@
+function [w,wl,wr,time,ext,s,ind]=ewing(f,t,n)
+
+% Find local extrema of the function f(t)
+%
+% Usage
+%     [w,wl,wr,time,ext,s,ind]=ewing(f,t,n)
+%     [w,wl,wr,time,ext,s,ind]=ewing(f,t)
+%     [w,wl,wr,time,ext,s,ind]=ewing(f)
+%
+% Inputs:
+%        f(t) is the function to be analysed; t=[1:length(f)] by default
+%        n    is the width of a plateu (if n adjacent values 
+%             are the same, only one is considered an extremum;
+%             n=1 by default) 
+%
+% Outputs:
+%        w    = wl+wr (all outputs are sorted descendingly according to w)
+%        wl   is the left wing (how far one can see from this extremum to the left)
+%        wr   is the right wing (how far one can see from this extremum to the right)
+%        time is the time of extremum
+%        ext  is the value of extremum (ext=f(time))
+%        s    is the sign of extremum (1 for maximum, -1 for minimum)
+%        ind  is the index of extreme values [e.g., time=t(ind)]
+
+% Check input
+%---------------------------------------------
+if exist('t')~=1
+   t=[1:length(f)];
+end
+if length(t)~=length(f)
+    error(['t and f must be the same size']);
+end
+if exist('n')~=1
+    n=1;
+elseif mod(n,1)~=0
+    error('n must be integer');
+elseif n<1
+    error('n must be positive integer');
+end
+
+% to compute ind at the end
+t_orig=t;
+
+% Sort by time
+%--------------
+[t,I]=sort(t);
+f=f(I);
+
+% Insert first and last fake values
+%----------------------------------
+L=length(f);
+g(1:n)=f(1);
+g(n+1:L+n)=f;
+g(L+n+1:L+2*n)=f(L);
+
+t1(1:n)=-t(L);
+%t1(1:n)=t(1);
+t1(n+1:L+n)=t;
+t1(L+n+1:L+2*n)=2*t(L);
+%t1(L+n+1:L+2*n)=t(L);
+t=t1;
+
+e=1;
+for i=n+1:L+n
+   S=sign(g(i)-g); % 1 = max; -1 = min
+   if prod(S([i-n:i-1 i+1:i+n]))~=0
+   % if not within a flat interval
+   		if S(i-1)==S(i+1) 
+      	  % if the point is a local extremum
+      	  sgn=S(i-1);
+      	  I=find(S~=sgn);
+         IR=I(min(find(I>i))); % right wing
+         IL=I(max(find(I<i))); % left wing
+         
+         if isempty(IR)
+            IR=L+2;
+         end
+         if isempty(IL)
+            IL=1;
+         end
+         
+         wl(e)=t(i)-t(IL);
+         wr(e)=t(IR)-t(i);
+         w(e)=sum([wl(e),wr(e)]);
+         time(e)=t(i);
+         ext(e)=g(i);
+         s(e)=sgn;
+         
+         e=e+1;
+      end
+   elseif sum(S([i+1:i+n])~=0)==n
+      % if on the right edge of a flat interval
+      
+      % find left edge of the flat interval
+      % (we should not see n unmatches in a row
+      % within a flat interval)
+      j=i;
+      j1=i;
+      p=0;
+      while p<n & j1>1
+          if S(j1)~=0
+              p=p+1;
+          else
+              p=0;
+              j=j1;
+          end
+          j1=j1-1;
+      end
+      
+      % now the flat interval is [j i]
+      
+      if j>1
+         if S(j-1)==S(i+1) & sum(S([i-n:i-1])==0 | S([i-n:i-1])==S(i+1))==n
+            % if the flat interval is a local extremun
+            sgn=S(j-1);
+            I=find(S~=sgn);
+            IR=I(min(find(I>i))); % right wing
+            IL=I(max(find(I<j))); % left wing
+            
+            if isempty(IR)
+               IR=L+2;
+            end
+         		if isempty(IL)
+            	IL=1;
+         		end
+
+            wl(e)=t(j)-t(IL);
+            wr(e)=t(IR)-t(i);
+            w(e)=min([wl(e),wr(e)]);
+            time(e)=t(i);
+            ext(e)=g(i);
+            s(e)=sgn;
+            
+            e=e+1;
+
+         end
+      end
+   end
+   
+end %for
+
+if exist('w')~=1
+    w=0;
+    wr=0;
+    wl=0;
+    time=NaN;
+    ext=NaN;
+    s=NaN;
+    ind=NaN;
+end
+
+[w1,I]=sort(w);
+I=I(end:-1:1);
+w=w(I);
+wr=wr(I);
+wl=wl(I);
+time=time(I);
+ext=ext(I);
+s=s(I);
+
+if ~isnan(time)
+    for i=1:length(time)
+        ind(i)=find(t_orig==time(i));
+    end
+end
