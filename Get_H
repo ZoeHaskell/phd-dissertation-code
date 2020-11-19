@@ -1,0 +1,43 @@
+# Problem of finding values for the function h(x) which meets the Gordin/Lifsic criteria.
+# Note that this is written for R.
+
+library(matlib)
+library(MASS)
+library(Matrix)
+
+
+n <- 6 # Length of sequence
+A <- matrix(0, 2^(n-1), 2^n) 
+for (k in 1:2^(n-1)){
+  A[k, 2*k -1] <- 1/2
+  A[k, 2*k] <- 1/2
+}
+Q <- rbind(A,A)
+I <- diag(2^n)
+
+K <- (I - Q) 
+#This is the coefficient matrix of the linear system to solve for h(x)
+
+Kinv <- Ginv(K)
+pick <- 53 # this is the fixed sequence we are "tracking" (can be anything in 1:2^n)
+
+xi_prime <- matrix((-1/(2^n)), 2^n, 1)
+xi_prime[pick] <- (1 - 1/(2^n))
+
+LHS <- Kinv%*%xi_prime
+fractions(LHS)
+
+
+# K%*%Kinv%*%xi_prime
+# this is equal to xi_prime, so solutions exist (we knew that, but I'm still happy about it)
+
+omega <- matrix(0, 2^n, 1) # arbitrary vector of parameters; zero for simplicity
+
+h <- Kinv%*%xi_prime + (diag(2^(n)) - Kinv%*%K)%*%omega
+Qh <- Q%*%h
+
+h_norm <- sum((h^2)*(1/2^(n)))
+Qh_norm <- sum((Qh^2)*(1/2^(n)))
+
+variance <- h_norm - Qh_norm
+fractions(variance)
