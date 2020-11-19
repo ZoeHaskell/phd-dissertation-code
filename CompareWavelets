@@ -1,3 +1,5 @@
+%% Script which generates data and approximates using both wavelets and 
+%% tree pruning. Compares the MSE of each approximation for similar numbers of parameters used. Requires Wavelab 850.
 
 isplot=1;
 save = 1;
@@ -70,19 +72,12 @@ Y = Y';
 if wing
     WSE1 = [];
     WSE2 = [];
-%     n = 1;
-%     percentile = .9;
+
     [W1,~,~,~,~,~,ind1] = ewing(X);
-%     M = quantile(W1, percentile);
     WTruth = ones(1,length(X));
     Wm = sum(W1);
     WTruth(ind1) = W1;
     WTruth = WTruth./Wm;
-%     while W1(n) >= M
-%         n = n+1;
-%     end
-%     WTruth = WTruth.*0.5;
-%     WTruth(ind1(1:n)) = 1;
     WTruth2 = WTruth;
     
 else
@@ -108,7 +103,6 @@ for sig = 1:100:2000
     threshold=sig;
 
 %Apply hard-threshold low-pass filter
-% filter=zeros(size(WC));
 I=abs(WC)>threshold;
 Keep=WC.*I;
 
