@@ -1,5 +1,5 @@
 # phd-dissertation-code
-Repository for all the code referenced in my thesis. To be defended in November 2020.
+Repository for all the code referenced in my thesis:  Haskell, Z. A. (2020) Mapping between tree metric spaces and time series: new constructions with applications to limit theorems for branch counts in partial Galton-Watson trees and signal processing. Dissertation at the University of Nevada, Reno.
 
 Programs for transforming data between function-space and tree-space: 
 
