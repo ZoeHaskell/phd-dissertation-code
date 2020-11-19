@@ -1,4 +1,7 @@
-% Comparison of Signal Processing Methods
+%% Comparison of Signal Processing Methods:
+%% Generates data, approximates with the FFT and with 
+%% tree pruning; compares MSE for similar numbers
+%% of parameters.
 % 
 % Zoe Haskell, at UNR in August 2015
 % --------------------------------------------
