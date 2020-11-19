@@ -45,6 +45,7 @@ Requres Wavelab 850.
 
 EdgeDectectionWithPruning: [M,BWm] = PruneImage(data,map,process,Delta0,bwthres)
 Uses tree pruning to detect edges in an image.
+
     Inputs: data: the image
     map: auxillary to help image be read correctly; optional.
     process: option to pre-process image
@@ -63,6 +64,7 @@ Auxillary functions needed to run the code described above:
 CompareError: compares two input time series (t, X) and (t2, X2), outputs the MSE between the two and W is an optional weights vector. 
 
 KidsArrayFromTree: [Kids2] = KidsArrayFromTree(T1,T2)
+
       Inputs: 
       T1: is a "direct" tree vector with -1 in place of any degree two nodes.
       T2: includes all the degree two nodes' parent-child links
@@ -79,6 +81,7 @@ TopoDelete: Takes a list of nodes that are to be deleted, and the current trees,
 RenameNodes: Takes care of the node renaming process after the to-be-deleted nodes are selected by TopoDelete.
 
 Fn2Excursion: 
+
         Inputs:
         X(t) is the function to be analysed;
         Outputs:
