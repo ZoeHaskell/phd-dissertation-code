@@ -63,10 +63,12 @@ Auxillary functions needed to run the code described above:
 CompareError: compares two input time series (t, X) and (t2, X2), outputs the MSE between the two and W is an optional weights vector. 
 
 KidsArrayFromTree: [Kids2] = KidsArrayFromTree(T1,T2)
-      Inputs: T1 is a "direct" tree vector with -1 in place of any degree two nodes.
-      T2 includes all the degree two nodes' parent-child links
+      Inputs: 
+      T1: is a "direct" tree vector with -1 in place of any degree two nodes.
+      T2: includes all the degree two nodes' parent-child links
       
-      Output: parent-pointer type array of kids for each node
+      Output: 
+      parent-pointer type array of kids for each node
 
 PickTrimTypeWOdeg2Nodes: Picks whether or not to keep a degree two node in a trim based on the error level but doesn't consider parantage of degree-two nodes.
 
