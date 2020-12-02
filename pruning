@@ -1,4 +1,4 @@
-function [tst2,Dcheck] = ThreeOptionTrim(tst1,Delta,type)
+function [tst2] = ThreeOptionTrim(tst1,Delta,type)
 
 % Last Edit: June 7 2017
 
@@ -48,11 +48,8 @@ if sum(T1length)==1
     NewT1 = T1;
     NewT2 = T2;
     Lt = L;
-    Dcheck=1;
     return
 end
-
-Dcheck = 0;
 
 % Create Kids2 from T2
 Kids2 = KidsArrayFromTree(T1,T2);
@@ -75,7 +72,6 @@ if L(MinLeaf)>Delta
     NewT1 = T1;
     NewT2 = T2;
     Lt = L;
-    Dcheck = 1;
     tst2 = time_series_tree(NewT1, NewT2, Lt, tt, Xt, Vt);
     return
 end
