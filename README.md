@@ -35,7 +35,7 @@ level_set_tree: Creates the level-set tree from a given continuous function with
        Ms: time-sorted vector tracking types of extrema (1 for max, 0 for min)
        
 pruning: removes a set of small leaves from trees, and denoises the corresponding time series. Options are included for paths with long flat portions, i.e. plateaus.
-[tst2,Dcheck] = pruning(tst1,Delta,type) 
+[tst2] = pruning(tst1,Delta,type) 
 
        Inputs: 
        tst1: a time_series_tree object (see time_series_tree for details)
@@ -44,8 +44,7 @@ pruning: removes a set of small leaves from trees, and denoises the correspondin
        
        Outputs:
        tst2: resulting (pruned) time_series_tree object
-       Dcheck: 
-
+       
 Compare_Prune_to_FFT: script for comparison of signal processing methods. Generates data, approximates with the FFT and with tree pruning; compares MSE for similar numbers
 of parameters.
 
